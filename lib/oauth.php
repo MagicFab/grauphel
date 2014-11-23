@@ -176,17 +176,45 @@ class OAuth
             //FastCgi puts the headers in REDIRECT_HTTP_AUTHORIZATION,
             // but the oauth extension does not read that.
             // we have to parse the parameters manually
-            $regex = "/(oauth_[a-z_-]*)=(?:\"([^\"]*)\"|([^,]*))/";
-            preg_match_all(
-                $regex, $_SERVER['REDIRECT_HTTP_AUTHORIZATION'], $matches
+            $params = static::parseOAuthHeader(
+                $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
             );
+        }
 
-            foreach ($matches[1] as $key => $paramName) {
-                $params[$paramName] = urldecode($matches[2][$key]);
-            }
+        //work around https://github.com/tomboy-notes/tomboy.osx/issues/39
+        //,oauth_signature="anyone%2526",oauth_signature_method="PLAINTEXT",
+        if (isset($_SERVER['HTTP_AUTHORIZATION'])
+            && strpos($_SERVER['HTTP_AUTHORIZATION'], '"anyone%2526"') !== false
+        ) {
+            $params = static::parseOAuthHeader($_SERVER['HTTP_AUTHORIZATION']);
+        }
+        if (isset($params['oauth_signature'])
+            && $params['oauth_signature'] == 'anyone%26'
+        ) {
+            //second if to catch the REDIRECT values
+            $params['oauth_signature']  ='anyone&';
         }
 
         return new \OAuthProvider($params);
+    }
+
+    /**
+     * Parse an OAuth HTTP header into an array
+     *
+     * @param string $headerValue HTTP header value (after "Authorization:")
+     *
+     * @return array Array of parameters
+     */
+    protected static function parseOAuthHeader($headerValue)
+    {
+        $regex = "/(oauth_[a-z_-]*)=(?:\"([^\"]*)\"|([^,]*))/";
+        preg_match_all($regex, $headerValue, $matches);
+
+        $params = array();
+        foreach ($matches[1] as $key => $paramName) {
+            $params[$paramName] = urldecode($matches[2][$key]);
+        }
+        return $params;
     }
 }
 ?>

@@ -162,7 +162,7 @@ class OAuth
         //$_SERVER['REDIRECT_HTTP_AUTHORIZATION'] = $_SERVER['HTTP_AUTHORIZATION'];
 
         if (isset($_SERVER['HTTP_AUTHORIZATION'])
-            && $_SERVER['HTTP_AUTHORIZATION'] == ''
+            && strtolower(substr($_SERVER['HTTP_AUTHORIZATION'], 0, 6)) != 'oauth '
         ) {
             //work around bug https://bugs.php.net/bug.php?id=68168
             //#68168: HTTP Basic auth and empty auth header reported
